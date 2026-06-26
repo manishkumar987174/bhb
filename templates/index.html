@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FastAPI JWT Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .lock-icon {
+            font-size: 32px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-protected {
+            background: #10b981;
+        }
+
+        .btn-protected:hover {
+            background: #059669;
+        }
+
+        .btn-logout {
+            background: #ef4444;
+        }
+
+        .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f3f4f6;
+            min-height: 60px;
+            word-wrap: break-word;
+            font-size: 13px;
+            border-left: 4px solid #e5e7eb;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+
+        .error {
+            color: #dc2626;
+            background: #fee2e2 !important;
+            border-left-color: #dc2626 !important;
+        }
+
+        .success {
+            color: #16a34a;
+            background: #dcfce7 !important;
+            border-left-color: #16a34a !important;
+        }
+
+        .info {
+            color: #0284c7;
+            background: #f0f9ff !important;
+            border-left-color: #0284c7 !important;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .token-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0f9ff;
+            border-left: 4px solid #0284c7;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #0c4a6e;
+            line-height: 1.6;
+        }
+
+        .token-info strong {
+            color: #0284c7;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><span class="lock-icon">🔐</span> FastAPI JWT Login</h1>
+
+    <input type="text" id="username" placeholder="Username" value="admin">
+    <input type="password" id="password" placeholder="Password" value="123456">
+
+    <div class="button-group">
+        <button class="btn-login" onclick="login()">Login</button>
+        <button class="btn-protected" onclick="getProtectedData()">Protected Data</button>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="result"></div>
+    
+    <div class="token-info">
+        <strong>📝 Demo Credentials:</strong><br>
+        <strong>💡 Steps:</strong><br>
+        1. Click Login<br>
+        2. Click Protected Data<br>
+        3. Click Logout
+    </div>
+</div>
+
+<script>
+    // ===== LOGIN FUNCTION =====
+    async function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+            showResult("❌ Username and password required!", "error");
+            return;
+        }
+
+        showResult("<span class='spinner'></span> Logging in...", "info");
+
+        const formData = new URLSearchParams();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        try {
+            console.log("🔹 Sending login request...");
+            
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: formData
+            });
+
+            console.log("🔹 Response status:", response.status);
+            console.log("🔹 Response ok:", response.ok);
+            console.log("🔹 Content-Type:", response.headers.get("content-type"));
+
+            // Get response as text first
+            const responseText = await response.text();
+            console.log("🔹 Response text:", responseText);
+
+            // Try to parse as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("❌ Failed to parse JSON:", e);
+                showResult(
+                    `❌ Server Error ${response.status}\n\nResponse was not valid JSON:\n${responseText}`,
+                    "error"
+                );
+                return;
+            }
+
+            // Check if response was successful
+            if (!response.ok) {
+                console.error("❌ Login failed:", data);
+                showResult(
+                    `❌ Login Failed (${response.status})\n\n${data.detail || "Unknown error"}`,
+                    "error"
+                );
+                return;
+            }
+
+            // Check if token was returned
+            if (!data.access_token) {
+                console.error("❌ No token in response");
+                showResult(
+                    `❌ No token received from server\n\nResponse: ${JSON.stringify(data, null, 2)}`,
+                    "error"
+                );
+                return;
+            }
+
+            // Save token
+            localStorage.setItem("token", data.access_token);
+            console.log("✅ Token saved to localStorage");
+
+            showResult(
+                `✅ Login Successful!\n\nToken Type: ${data.token_type}\nToken: ${data.access_token.substring(0, 50)}...`,
+                "success"
+            );
+
+        } catch (err) {
+            console.error("❌ Login error:", err);
+            showResult(
+                `❌ Network Error\n\n${err.message}`,
+                "error"
+            );
+        }
+    }
+
+    // ===== GET PROTECTED DATA =====
+    async function getProtectedData() {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            showResult("❌ No token found!\n\nPlease login first.", "error");
+            return;
+        }
+
+        showResult("<span class='spinner'></span> Fetching protected data...", "info");
+
+        try {
+            console.log("🔹 Sending protected data request...");
+            console.log("🔹 Token:", token.substring(0, 50) + "...");
+
+            const response = await fetch("/protected", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            console.log("🔹 Response status:", response.status);
+            console.log("🔹 Content-Type:", response.headers.get("content-type"));
+
+            const responseText = await response.text();
+            console.log("🔹 Response text:", responseText);
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("❌ Failed to parse JSON:", e);
+                showResult(
+                    `❌ Server Error ${response.status}\n\nResponse: ${responseText}`,
+                    "error"
+                );
+                return;
+            }
+
+            if (!response.ok) {
+                console.error("❌ Protected request failed:", data);
+                showResult(
+                    `❌ Error ${response.status}\n\n${data.detail || "Failed to fetch protected data"}`,
+                    "error"
+                );
+                return;
+            }
+
+            console.log("✅ Protected data received:", data);
+            showResult(
+                `✅ Protected Data Retrieved!\n\n${JSON.stringify(data, null, 2)}`,
+                "success"
+            );
+
+        } catch (err) {
+            console.error("❌ Protected data error:", err);
+            showResult(
+                `❌ Error\n\n${err.message}`,
+                "error"
+            );
+        }
+    }
+
+    // ===== LOGOUT =====
+    function logout() {
+        const token = localStorage.getItem("token");
+        
+        if (token) {
+            localStorage.removeItem("token");
+            console.log("✅ Token removed from localStorage");
+        }
+
+        showResult("✅ Logged out successfully!\n\nToken cleared.", "success");
+    }
+
+    // ===== SHOW RESULT =====
+    function showResult(message, type = "success") {
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = `<pre>${message}</pre>`;
+        resultDiv.className = type;
+    }
+
+    // Check on page load
+    window.addEventListener("load", function() {
+        const token = localStorage.getItem("token");
+        if (token) {
+            showResult(
+                `✅ You are logged in!\n\nToken: ${token.substring(0, 50)}...\n\nClick "Protected Data" to test.`,
+                "success"
+            );
+        } else {
+            showResult("ℹ️ Welcome! Please login to continue.", "info");
+        }
+        console.log("✅ Page loaded successfully");
+    });
+</script>
+
+</body>
+</html>
