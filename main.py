@@ -7,7 +7,6 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 import os
-
 from config import settings
 
 app = FastAPI()
@@ -155,3 +154,5 @@ async def http_exception_handler(request, exc):
         content={"detail": exc.detail}
     )
     
+    
+       
